@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "*.rkt": "racket",
+        "ostream": "cpp"
+    }
+}
