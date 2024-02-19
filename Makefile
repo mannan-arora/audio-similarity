@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -std=c++14 -g -Wall -MMD -Werror=vla
+CXXFLAGS = -std=c++20 -g -Wall -MMD -Werror=vla
 OBJECTS = main.o similarity.o
 DEPENDS = ${OBJECTS:.o=.d}
 EXEC = similarity
