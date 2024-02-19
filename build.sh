@@ -8,7 +8,8 @@ if [ $? -eq 0 ]; then
     # Run the executable
     ./similarity
     
-    # Delete object & depenency files
+    # Delete object & dependency files & executable
     rm *.o
     rm *.d
+    rm similarity
 fi
