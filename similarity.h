@@ -5,7 +5,7 @@
 #include <string>
 
 class Similarity {
-private:
+public:
     std::string originalFilePath;
     std::string compareFilePath;
     float sampleRate;
@@ -13,7 +13,7 @@ private:
     AudioFile<float> originalFile;
     AudioFile<float> compareFile;
 
-public:
+    Similarity(std::string originalFilePath, std::string compareFilePath, float sampleRate = 44100.f);
     bool loadAudioFiles();
 
     float zcrSimilarity();
@@ -23,8 +23,7 @@ public:
     float spectralContrastSimilarity();
     float perceptualSimilarity();
 
-    float computeZCR(std::vector<std::vector<float>> buffer);
-    Similarity(std::string originalFilePath, std::string compareFilePath, float sampleRate = 44100.f);
+    float computeZCR(std::vector<float> buffer);
 };
 
 #endif
