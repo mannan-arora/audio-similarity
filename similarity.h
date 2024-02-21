@@ -24,6 +24,9 @@ public:
     float perceptualSimilarity();
 
     float computeZCR(std::vector<float> buffer);
+
+    float pearsonCorrelation(std::vector<float> x, std::vector<float> y);
+    std::vector<float> energyDifference(std::vector<float> buffer);
 };
 
 #endif

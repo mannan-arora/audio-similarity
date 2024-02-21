@@ -12,8 +12,10 @@ int main(int argc, char **argv) {
     Similarity similarity(oboeFilePath, trumpetFilePath, sampleRate);
 
     float zcrSimilarity = similarity.zcrSimilarity();
-
     std::cout << "Zero Crossing Rate Similarity: " << zcrSimilarity << std::endl;
+
+    float rhythmSimilarity = similarity.rhythmSimilarity();
+    std::cout << "Rhythm Similarity: " << rhythmSimilarity << std::endl;
 
     return 0;
 }
