@@ -1,11 +1,12 @@
 #ifndef _SIMILARITY_H_
 #define _SIMILARITY_H_
 
-#include "AudioFile.h"
 #include <string>
 
+#include "AudioFile.h"
+
 class Similarity {
-public:
+   public:
     std::string originalFilePath;
     std::string compareFilePath;
     float sampleRate;
@@ -27,6 +28,9 @@ public:
 
     float pearsonCorrelation(std::vector<float> x, std::vector<float> y);
     std::vector<float> energyDifference(std::vector<float> buffer);
+
+    std::vector<std::vector<float>> computeSpectrogram(const std::vector<float>& signal, int windowSize, int hopSize);
+    std::vector<float> computeSpectralContrast(const std::vector<std::vector<float>>& spectrogram, int numBands);
 };
 
 #endif
