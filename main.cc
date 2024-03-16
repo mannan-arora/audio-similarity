@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
     float rhythmSimilarity = similarity.rhythmSimilarity();
     std::cout << "Rhythm Similarity: " << rhythmSimilarity << std::endl;
 
-    float spectralContrastSimilarity = similarity.rhythmSimilarity();
+    float spectralContrastSimilarity = similarity.spectralContrastSimilarity();
     std::cout << "Spectral Contrast Similarity: " << spectralContrastSimilarity << std::endl;
 
     return 0;

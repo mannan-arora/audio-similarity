@@ -150,12 +150,22 @@ std::vector<float> Similarity::computeSpectralContrast(const std::vector<std::ve
     return contrast;
 }
 
+std::vector<float> Similarity::normalizeContrast(const std::vector<float>& contrast) {
+    float minVal = *std::min_element(contrast.begin(), contrast.end());
+    float maxVal = *std::max_element(contrast.begin(), contrast.end());
+    std::vector<float> normalizedContrast(contrast.size());
+    for (size_t i = 0; i < contrast.size(); ++i) {
+        normalizedContrast[i] = (contrast[i] - minVal) / (maxVal - minVal);
+    }
+    return normalizedContrast;
+}
+
 float Similarity::spectralContrastSimilarity() {
     auto originalSpectrogram = computeSpectrogram(originalFile.samples[0], 1024, 512);
     auto compareSpectrogram = computeSpectrogram(compareFile.samples[0], 1024, 512);
 
-    auto originalContrast = computeSpectralContrast(originalSpectrogram, 6);
-    auto compareContrast = computeSpectralContrast(compareSpectrogram, 6);
+    auto originalContrast = normalizeContrast(computeSpectralContrast(originalSpectrogram, 6));
+    auto compareContrast = normalizeContrast(computeSpectralContrast(compareSpectrogram, 6));
 
     float similarity = 0.0f;
     for (size_t i = 0; i < originalContrast.size(); ++i) {

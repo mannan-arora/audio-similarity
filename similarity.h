@@ -31,6 +31,7 @@ class Similarity {
 
     std::vector<std::vector<float>> computeSpectrogram(const std::vector<float>& signal, int windowSize, int hopSize);
     std::vector<float> computeSpectralContrast(const std::vector<std::vector<float>>& spectrogram, int numBands);
+    std::vector<float> normalizeContrast(const std::vector<float>& contrast);
 };
 
 #endif
