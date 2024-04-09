@@ -1,8 +1,13 @@
 #include "similarity.h"
 
+#include <fftw3.h>
+#include <sndfile.h>
+
 #include <algorithm>
 #include <cmath>
+#include <iostream>
 #include <numeric>
+#include <vector>
 
 Similarity::Similarity(std::string originalFilePath, std::string compareFilePath, float sampleRate) {
     this->originalFilePath = originalFilePath;
@@ -110,68 +115,69 @@ std::vector<float> Similarity::energyDifference(std::vector<float> buffer) {
     return onsets;
 }
 
-std::vector<std::vector<float>> Similarity::computeSpectrogram(const std::vector<float>& signal, int windowSize, int hopSize) {
-    int numFrames = (signal.size() - windowSize) / hopSize + 1;
-    std::vector<std::vector<float>> spectrogram(numFrames, std::vector<float>(windowSize / 2 + 1, 0.0f));
+std::vector<std::vector<float>> Similarity::computeSpectrogram(const std::vector<float>& audio, int nfft, int hopLength) {
+    int numFrames = (audio.size() - nfft) / hopLength + 1;
+    std::vector<std::vector<float>> spectrogram(numFrames, std::vector<float>(nfft / 2 + 1, 0.0));
 
-    for (int frame = 0; frame < numFrames; ++frame) {
-        int start = frame * hopSize;
-        for (int bin = 0; bin < windowSize / 2 + 1; ++bin) {
-            float sum = 0.0f;
-            for (int n = 0; n < windowSize; ++n) {
-                float windowValue = 0.54f - 0.46f * cos(2 * M_PI * n / (windowSize - 1));
-                sum += windowValue * signal[start + n] * cos(2 * M_PI * bin * n / windowSize);
-            }
-            spectrogram[frame][bin] = sum * sum;
+    fftw_complex* out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * (nfft / 2 + 1));
+    double* in = (double*)fftw_malloc(sizeof(double) * nfft);
+    fftw_plan p = fftw_plan_dft_r2c_1d(nfft, in, out, FFTW_ESTIMATE);
+
+    for (int i = 0; i < numFrames; ++i) {
+        for (int j = 0; j < nfft; ++j) {
+            in[j] = static_cast<double>(audio[i * hopLength + j]);
+        }
+        fftw_execute(p);
+        for (int j = 0; j < nfft / 2 + 1; ++j) {
+            spectrogram[i][j] = static_cast<float>(std::sqrt(out[j][0] * out[j][0] + out[j][1] * out[j][1]));
         }
     }
+
+    fftw_destroy_plan(p);
+    fftw_free(in);
+    fftw_free(out);
+
     return spectrogram;
 }
 
 std::vector<float> Similarity::computeSpectralContrast(const std::vector<std::vector<float>>& spectrogram, int numBands) {
-    int numFrames = spectrogram.size();
-    int freqBinsPerBand = (spectrogram[0].size() - 2) / numBands;
-    std::vector<float> contrast(numBands, 0.0f);
+    std::vector<float> spectralContrast(spectrogram.size(), 0.0f);
 
-    for (int band = 0; band < numBands; ++band) {
-        int startBin = band * freqBinsPerBand + 1;
-        int endBin = startBin + freqBinsPerBand;
-        std::vector<float> bandValues;
-        for (int frame = 0; frame < numFrames; ++frame) {
-            bandValues.insert(bandValues.end(), spectrogram[frame].begin() + startBin, spectrogram[frame].begin() + endBin);
+    for (int i = 0; i < spectrogram.size(); ++i) {
+        std::vector<double> sortedSpectrum(spectrogram[i].begin(), spectrogram[i].end());
+        std::sort(sortedSpectrum.begin(), sortedSpectrum.end());
+
+        int bandSize = sortedSpectrum.size() / numBands;
+        for (int j = 0; j < numBands; ++j) {
+            double meanValley = std::accumulate(sortedSpectrum.begin() + j * bandSize, sortedSpectrum.begin() + (j + 1) * bandSize, 0.0) / bandSize;
+            double meanPeak = std::accumulate(sortedSpectrum.end() - (j + 1) * bandSize, sortedSpectrum.end() - j * bandSize, 0.0) / bandSize;
+            spectralContrast[i] += static_cast<float>(meanPeak - meanValley);
         }
-        std::nth_element(bandValues.begin(), bandValues.begin() + bandValues.size() / 10, bandValues.end());
-        float lowerQuantileMean = std::accumulate(bandValues.begin(), bandValues.begin() + bandValues.size() / 10, 0.0f) / (bandValues.size() / 10);
-        std::nth_element(bandValues.begin(), bandValues.end() - bandValues.size() / 10, bandValues.end());
-        float upperQuantileMean = std::accumulate(bandValues.end() - bandValues.size() / 10, bandValues.end(), 0.0f) / (bandValues.size() / 10);
-        contrast[band] = std::log(upperQuantileMean + 1e-6) - std::log(lowerQuantileMean + 1e-6);
+        spectralContrast[i] /= numBands;
     }
 
-    return contrast;
+    return spectralContrast;
 }
 
-std::vector<float> Similarity::normalizeContrast(const std::vector<float>& contrast) {
-    float minVal = *std::min_element(contrast.begin(), contrast.end());
-    float maxVal = *std::max_element(contrast.begin(), contrast.end());
-    std::vector<float> normalizedContrast(contrast.size());
-    for (size_t i = 0; i < contrast.size(); ++i) {
-        normalizedContrast[i] = (contrast[i] - minVal) / (maxVal - minVal);
+float Similarity::computeSimilarityScore(const std::vector<float>& contrast1, const std::vector<float>& contrast2) {
+    double similarity = 0.0;
+    for (int i = 0; i < contrast1.size(); ++i) {
+        similarity += std::abs(contrast1[i] - contrast2[i]);
     }
-    return normalizedContrast;
+    similarity = 1 - similarity / contrast1.size();
+    return similarity;
 }
 
 float Similarity::spectralContrastSimilarity() {
-    auto originalSpectrogram = computeSpectrogram(originalFile.samples[0], 1024, 512);
-    auto compareSpectrogram = computeSpectrogram(compareFile.samples[0], 1024, 512);
+    int nfft = 2048;
+    int hopLength = 512;
+    int numBands = 6;
 
-    auto originalContrast = normalizeContrast(computeSpectralContrast(originalSpectrogram, 6));
-    auto compareContrast = normalizeContrast(computeSpectralContrast(compareSpectrogram, 6));
+    auto spectrogram1 = computeSpectrogram(originalFile.samples[0], nfft, hopLength);
+    auto spectrogram2 = computeSpectrogram(compareFile.samples[0], nfft, hopLength);
 
-    float similarity = 0.0f;
-    for (size_t i = 0; i < originalContrast.size(); ++i) {
-        similarity += std::pow(originalContrast[i] - compareContrast[i], 2);
-    }
-    similarity = std::sqrt(similarity);
+    auto contrast1 = computeSpectralContrast(spectrogram1, numBands);
+    auto contrast2 = computeSpectralContrast(spectrogram2, numBands);
 
-    return similarity;
+    return computeSimilarityScore(contrast1, contrast2);
 }

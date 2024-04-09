@@ -1,7 +1,11 @@
 #ifndef _SIMILARITY_H_
 #define _SIMILARITY_H_
 
+#include <fftw3.h>
+#include <sndfile.h>
+
 #include <string>
+#include <vector>
 
 #include "AudioFile.h"
 
@@ -21,7 +25,6 @@ class Similarity {
     float rhythmSimilarity();
     float chromaSimilarity();
     float energyEnvelopeSimilarity();
-    float spectralContrastSimilarity();
     float perceptualSimilarity();
 
     float computeZCR(std::vector<float> buffer);
@@ -29,9 +32,11 @@ class Similarity {
     float pearsonCorrelation(std::vector<float> x, std::vector<float> y);
     std::vector<float> energyDifference(std::vector<float> buffer);
 
-    std::vector<std::vector<float>> computeSpectrogram(const std::vector<float>& signal, int windowSize, int hopSize);
+    std::vector<std::vector<float>> computeSpectrogram(const std::vector<float>& audio, int nfft, int hopLength);
     std::vector<float> computeSpectralContrast(const std::vector<std::vector<float>>& spectrogram, int numBands);
-    std::vector<float> normalizeContrast(const std::vector<float>& contrast);
+    float computeSimilarityScore(const std::vector<float>& contrast1, const std::vector<float>& contrast2);
+
+    float spectralContrastSimilarity();
 };
 
 #endif

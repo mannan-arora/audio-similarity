@@ -10,7 +10,7 @@ int main(int argc, char **argv) {
     std::string trumpetFilePath = "resources/Trumpet.wav";
     float sampleRate = 44100.0;
 
-    Similarity similarity(oboeFilePath, trumpetFilePath, sampleRate);
+    Similarity similarity(trumpetFilePath, oboeFilePath, sampleRate);
 
     float zcrSimilarity = similarity.zcrSimilarity();
     std::cout << "Zero Crossing Rate Similarity: " << zcrSimilarity << std::endl;

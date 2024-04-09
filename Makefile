@@ -5,9 +5,9 @@ DEPENDS = ${OBJECTS:.o=.d}
 EXEC = similarity
 
 ${EXEC} : ${OBJECTS}
-	${CXX} ${CXXFLAGS} ${OBJECTS} -o ${EXEC}
+	${CXX} ${CXXFLAGS} ${OBJECTS} -o ${EXEC} -lsndfile -lfftw3
 
 clean :
-	rm ${DEPENDS} ${OBJECTS} ${EXEC}
+	rm -f ${DEPENDS} ${OBJECTS} ${EXEC}
 
 -include ${DEPENDS} # reads the .d files and reruns dependencies
